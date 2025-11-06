@@ -35,19 +35,71 @@ Navigeer vervolgens naar `http://localhost:8000` in je browser.
 
 ## Gebruik
 
-### 1. Start je lokale LLM server
+### 1. Start je lokale LLM server met LM Studio
 
-Zorg ervoor dat je lokale LLM server draait op `http://localhost:1234` met een OpenAI-compatibele API endpoint (`/v1/chat/completions`).
+#### LM Studio installeren en configureren
 
-Voorbeelden van lokale LLM servers:
-- **LM Studio**: Start een server met je favoriete model
-- **Ollama**: Gebruik `ollama serve` (standaard poort 11434, pas eventueel de code aan)
-- **llama.cpp server**: Start met de juiste parameters
-- **LocalAI**: Configureer op poort 1234
+**Stap 1: Download en installeer LM Studio**
+
+1. Ga naar [https://lmstudio.ai/](https://lmstudio.ai/)
+2. Download LM Studio voor jouw besturingssysteem (Windows, macOS, of Linux)
+3. Installeer de applicatie door het installatieprogramma te volgen
+
+**Stap 2: Download een model**
+
+1. Open LM Studio
+2. Klik op het **"Search"** icoon (🔍) in de linker zijbalk
+3. Zoek naar een model, bijvoorbeeld:
+   - `llama-3.2-3b-instruct` (klein, snel model ~2GB)
+   - `mistral-7b-instruct` (middelgroot model ~4GB)
+   - `llama-2-13b-chat` (groter model voor betere resultaten ~7GB)
+4. Klik op de **"Download"** knop naast het model dat je wilt gebruiken
+5. Wacht tot het model volledig is gedownload
+
+**Stap 3: Start de lokale server**
+
+1. Klik op het **"Local Server"** icoon (↔️) in de linker zijbalk van LM Studio
+2. Selecteer het gedownloade model bovenaan de pagina uit het dropdown menu
+3. Klik op de **"Start Server"** knop
+
+**Stap 4: Configureer de server instellingen**
+
+In het "Server Options" gedeelte aan de rechterkant van het scherm:
+
+1. **Poort instellen:**
+   - Zoek naar het veld **"Port"**
+   - Stel de poort in op: `1234`
+   - (Dit is de standaard poort die deze chat interface verwacht)
+
+2. **CORS inschakelen:**
+   - Zoek naar de checkbox **"Enable CORS"**
+   - ✅ Vink deze optie **AAN**
+   - Dit is nodig om de browser toegang te geven tot de lokale server
+
+3. **Serve on Local Network (optioneel):**
+   - Zoek naar de checkbox **"Serve on Local Network"**
+   - Als je de chat interface wilt gebruiken vanaf andere apparaten op hetzelfde netwerk, vink deze optie aan
+   - Anders kun je deze uitgelaten laten voor alleen lokale toegang
+
+4. **Andere instellingen (optioneel):**
+   - **Context Length**: Bepaalt hoeveel conversatiegeschiedenis het model onthoudt
+   - **GPU Offload**: Hoeveel GPU layers gebruikt worden (meer is sneller als je een GPU hebt)
+
+**Stap 5: Controleer of de server draait**
+
+- Je ziet een groen statusbericht: **"Server Running"** of **"Listening on http://localhost:1234"**
+- De API endpoint is nu beschikbaar op: `http://localhost:1234/v1/chat/completions`
+
+#### Alternatieve lokale LLM servers
+
+Je kunt ook andere lokale LLM servers gebruiken:
+- **Ollama**: Gebruik `ollama serve` (standaard poort 11434, pas de poort aan in `chat.js`)
+- **llama.cpp server**: Start met de juiste parameters en poort 1234
+- **LocalAI**: Configureer op poort 1234 met CORS ingeschakeld
 
 ### 2. Chat interface gebruiken
 
-1. Open `index.html` in je browser
+1. Open `index.html` in je browser (of start een lokale webserver zoals beschreven bij Installatie)
 2. Begin direct met chatten!
 
 Geen API key nodig - alle communicatie vindt plaats met je lokale LLM server.
@@ -138,21 +190,46 @@ constructor() {
 
 ### Kan geen verbinding maken met lokale LLM
 
-- Controleer of je lokale LLM server draait op poort 1234
-- Zorg dat de server een OpenAI-compatibele API biedt op `/v1/chat/completions`
-- Controleer firewall instellingen die localhost verkeer kunnen blokkeren
+- ✅ **Controleer of LM Studio server draait**: Je moet een groen "Server Running" bericht zien in LM Studio
+- ✅ **Controleer de poort**: Zorg dat de poort in LM Studio ingesteld is op `1234`
+- ✅ **Controleer CORS**: De "Enable CORS" checkbox moet aangevinkt zijn in LM Studio
+- ✅ **Controleer of een model geladen is**: Selecteer een gedownload model voordat je de server start
+- ✅ **Firewall**: Controleer firewall instellingen die localhost verkeer kunnen blokkeren
 
 ### Foutmeldingen
 
-- **Connection refused**: LLM server draait niet of draait op een andere poort
-- **CORS errors**: Sommige LLM servers hebben CORS configuratie nodig voor browser toegang
-- **500 Server Error**: Probleem met je lokale LLM server, check de server logs
+- **Connection refused** of **Failed to fetch**: 
+  - LM Studio server draait niet → Start de server in LM Studio
+  - Server draait op een andere poort → Pas de poort aan naar 1234 of wijzig de URL in `chat.js`
+  
+- **CORS errors** (bijv. "has been blocked by CORS policy"):
+  - CORS is niet ingeschakeld in LM Studio → Vink "Enable CORS" aan in de Server Options
+  - Herstart de server nadat je CORS hebt ingeschakeld
+  
+- **500 Server Error** of **Model error**:
+  - Het model is niet correct geladen → Selecteer opnieuw het model en herstart de server
+  - Onvoldoende geheugen → Kies een kleiner model of sluit andere applicaties
+  - Check de LM Studio console voor specifieke error logs
 
 ### Chat laadt niet
 
-- Open de browser console (F12) voor error berichten
+- Open de browser console (F12) voor gedetailleerde error berichten
 - Zorg dat JavaScript is ingeschakeld in je browser
-- Controleer of de LLM server bereikbaar is op http://localhost:1234
+- Test of de server bereikbaar is door naar `http://localhost:1234` te gaan in je browser (je zou een JSON response moeten zien)
+
+### Langzame responses
+
+- Kies een kleiner model (bijv. llama-3.2-3b in plaats van een 13b model)
+- Verhoog "GPU Offload" in LM Studio als je een GPU hebt
+- Verlaag de "Context Length" in de server instellingen
+- Sluit andere zware applicaties
+
+### LM Studio specifieke tips
+
+- **Model download mislukt**: Check je internetverbinding en probeer opnieuw
+- **Server start niet**: Probeer LM Studio opnieuw te starten
+- **Model laadt niet**: Zorg dat het model volledig gedownload is (geen "Downloading..." status)
+- **Poort al in gebruik**: Kies een andere poort (bijv. 1235) en pas de URL in `chat.js` aan
 
 ## Licentie
 
