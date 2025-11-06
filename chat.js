@@ -1,13 +1,9 @@
 class ChatInterface {
     constructor() {
-        this.apiKey = localStorage.getItem('openai_api_key');
         this.messages = [];
         this.isProcessing = false;
         
         this.elements = {
-            apiKeySection: document.getElementById('apiKeySection'),
-            apiKeyInput: document.getElementById('apiKeyInput'),
-            saveApiKeyBtn: document.getElementById('saveApiKeyBtn'),
             chatContainer: document.getElementById('chatContainer'),
             messagesDiv: document.getElementById('messages'),
             userInput: document.getElementById('userInput'),
@@ -19,23 +15,11 @@ class ChatInterface {
     }
     
     init() {
-        if (this.apiKey) {
-            this.showChat();
-        } else {
-            this.showApiKeyInput();
-        }
-        
+        this.showChat();
         this.attachEventListeners();
     }
     
     attachEventListeners() {
-        this.elements.saveApiKeyBtn.addEventListener('click', () => this.saveApiKey());
-        this.elements.apiKeyInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.saveApiKey();
-            }
-        });
-        
         this.elements.sendBtn.addEventListener('click', () => this.sendMessage());
         this.elements.userInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -49,33 +33,7 @@ class ChatInterface {
         });
     }
     
-    saveApiKey() {
-        const apiKey = this.elements.apiKeyInput.value.trim();
-        
-        if (!apiKey) {
-            alert('Voer een geldige API key in');
-            return;
-        }
-        
-        if (!apiKey.startsWith('sk-')) {
-            alert('OpenAI API keys beginnen meestal met "sk-". Weet je zeker dat dit correct is?');
-        }
-        
-        // Note: API key is stored in plain text in localStorage
-        // This is acceptable for a demo/hackathon project where the key is only used client-side
-        // For production use, consider additional security measures
-        this.apiKey = apiKey;
-        localStorage.setItem('openai_api_key', apiKey);
-        this.showChat();
-    }
-    
-    showApiKeyInput() {
-        this.elements.apiKeySection.classList.remove('hidden');
-        this.elements.chatContainer.classList.add('hidden');
-    }
-    
     showChat() {
-        this.elements.apiKeySection.classList.add('hidden');
         this.elements.chatContainer.classList.remove('hidden');
     }
     
@@ -150,17 +108,19 @@ class ChatInterface {
         this.addTypingIndicator();
         
         try {
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            // Using HTTP for localhost - local LLM servers typically don't use HTTPS
+            const response = await fetch('http://localhost:1234/v1/chat/completions', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.apiKey}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: 'gpt-3.5-turbo',
                     messages: this.messages,
                     temperature: 0.7,
-                    max_tokens: 1000
+                    max_tokens: 1000,
+                    // Some local LLM servers may require a model parameter
+                    // If your server requires it, uncomment and specify your model:
+                    // model: 'your-model-name'
                 })
             });
             
@@ -190,9 +150,7 @@ class ChatInterface {
                 <div class="message-content">
                     <strong>Fout:</strong> ${error.message}
                     <br><br>
-                    ${error.message.includes('API') || error.message.includes('401') ? 
-                        'Controleer je API key en probeer het opnieuw. Je kunt je API key opnieuw instellen door de pagina te herladen.' : 
-                        'Probeer het opnieuw.'}
+                    Zorg ervoor dat de lokale LLM server draait op http://localhost:1234
                 </div>
             `;
             this.elements.messagesDiv.appendChild(errorMessage);

@@ -3,38 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenAI Chat Interface</title>
+    <title>Local LLM Chat Interface</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <div class="chat-header">
-            <h1>AI Chat Assistant</h1>
+            <h1>AI Chat Assistant (Lokaal LLM)</h1>
             <div class="status" id="status">Klaar</div>
-        </div>
-        
-        <div class="api-key-section" id="apiKeySection">
-            <div class="api-key-input-container">
-                <input 
-                    type="password" 
-                    id="apiKeyInput" 
-                    placeholder="Voer je OpenAI API key in"
-                    class="api-key-input"
-                />
-                <button id="saveApiKeyBtn" class="save-btn">Opslaan</button>
-            </div>
-            <p class="api-key-info">
-                Je API key wordt lokaal opgeslagen in je browser en nooit naar een externe server gestuurd (behalve OpenAI).
-                <br>
-                Krijg je API key op <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a>
-            </p>
         </div>
 
         <div class="chat-container" id="chatContainer">
             <div class="messages" id="messages">
                 <div class="message assistant-message">
                     <div class="message-content">
-                        Hallo! Ik ben je AI assistent. Hoe kan ik je vandaag helpen?
+                        Hallo! Ik ben je lokale AI assistent. Hoe kan ik je vandaag helpen?
                     </div>
                 </div>
             </div>
