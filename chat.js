@@ -96,8 +96,12 @@ class ChatInterface {
         const savedVersion = localStorage.getItem('blocksVersion');
         
         // Check if saved data exists and version matches
-        if (saved && savedVersion === String(BLOCKS_VERSION)) {
-            return JSON.parse(saved);
+        if (saved && saved !== 'undefined' && savedVersion === String(BLOCKS_VERSION)) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                console.warn('Failed to parse saved learning blocks, using defaults', e);
+            }
         }
         
         // Version mismatch or no saved data - use default blocks
@@ -111,7 +115,8 @@ class ChatInterface {
         localStorage.setItem('blocksVersion', String(BLOCKS_VERSION));
     }
     
-    init() {
+    async init() {
+        await this.loadPrompts();
         this.renderStartPage();
         this.attachEventListeners();
     }
@@ -183,11 +188,6 @@ class ChatInterface {
         // Clear previous messages from UI
         this.elements.messagesDiv.innerHTML = '';
         this.addMessage('assistant', systemMessage);
-
-    async init() {
-        await this.loadPrompts();
-        this.showChat();
-        this.attachEventListeners();
     }
     
     async loadPrompts() {
@@ -276,13 +276,74 @@ class ChatInterface {
         await this.getAIResponse();
     }
     
+    convertMarkdownToHtml(markdown) {
+        let html = markdown;
+        
+        // Code blocks (``` ... ```)
+        html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+            return `<pre><code class="language-${lang || 'plaintext'}">${this.escapeHtml(code.trim())}</code></pre>`;
+        });
+        
+        // Inline code (` ... `)
+        html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+        
+        // Bold (**text** or __text__)
+        html = html.replace(/\*\*([^\*]+)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+        
+        // Italic (*text* or _text_)
+        html = html.replace(/\*([^\*]+)\*/g, '<em>$1</em>');
+        html = html.replace(/_([^_]+)_/g, '<em>$1</em>');
+        
+        // Headers
+        html = html.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+        html = html.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+        html = html.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+        
+        // Unordered lists
+        html = html.replace(/^\* (.+)$/gm, '<li>$1</li>');
+        html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+        html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+        
+        // Ordered lists
+        html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+        
+        // Line breaks
+        html = html.replace(/\n\n/g, '</p><p>');
+        html = html.replace(/\n/g, '<br>');
+        
+        // Wrap in paragraph if not already wrapped in block element
+        if (!html.startsWith('<')) {
+            html = '<p>' + html + '</p>';
+        }
+        
+        return html;
+    }
+    
+    escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+    
     addMessage(role, content) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${role}-message`;
         
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
-        contentDiv.textContent = content;
+        
+        // Convert markdown to HTML for assistant messages
+        if (role === 'assistant') {
+            contentDiv.innerHTML = this.convertMarkdownToHtml(content);
+        } else {
+            contentDiv.textContent = content;
+        }
         
         messageDiv.appendChild(contentDiv);
         this.elements.messagesDiv.appendChild(messageDiv);
