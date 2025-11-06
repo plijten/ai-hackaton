@@ -6,7 +6,8 @@ Een moderne, gebruiksvriendelijke chat interface in JavaScript die communiceert 
 
 - 🎨 Modern en responsief UI design
 - 💬 Real-time chat met een lokaal LLM op localhost:1234
-- 🔓 Geen API key nodig - werkt direct met je lokale LLM
+- 🔊 Directe voorleesfunctie via OpenAI text-to-speech (met stemkeuze)
+- 🔓 Geen API key nodig voor chatten met je lokale LLM
 - ⚡ Snelle en soepele gebruikerservaring
 - 📱 Volledig responsive (werkt op desktop en mobiel)
 - 🌐 Privacy-vriendelijk - alle communicatie blijft lokaal
@@ -50,7 +51,9 @@ Voorbeelden van lokale LLM servers:
 1. Open `index.html` in je browser
 2. Begin direct met chatten!
 
-Geen API key nodig - alle communicatie vindt plaats met je lokale LLM server.
+Geen API key nodig om te chatten - alle communicatie vindt plaats met je lokale LLM server. 
+
+🆕 **Text-to-speech**: om antwoorden te laten voorlezen, is een OpenAI API sleutel nodig.
 
 ## Bestandsstructuur
 
@@ -58,7 +61,8 @@ Geen API key nodig - alle communicatie vindt plaats met je lokale LLM server.
 .
 ├── index.html      # Hoofd HTML bestand met de chat interface
 ├── styles.css      # Styling voor de chat interface
-├── chat.js         # JavaScript logica voor OpenAI API integratie
+├── chat.js         # JavaScript logica voor de chat en text-to-speech
+├── settings.js     # Configuratiebestand voor de OpenAI API sleutel en standaard stem
 └── README.md       # Deze documentatie
 ```
 
@@ -119,6 +123,14 @@ De kleuren en styling kunnen aangepast worden in `styles.css`. De belangrijkste 
 - Primaire gradient: `#667eea` tot `#764ba2`
 - Achtergrond: `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`
 - Berichten achtergrond: `#f1f3f5`
+
+### Text-to-speech configureren
+
+1. Open `settings.js` en vul je OpenAI API sleutel in bij `OPENAI_API_KEY`.
+2. (Optioneel) Kies een standaard stem met `DEFAULT_TTS_VOICE` (bijv. `alloy`, `verse`, `sol`, `luna`, `ember`).
+3. Vernieuw de pagina in je browser. In de chat verschijnt nu een dropdown om stemmen te wisselen en een voorleesknop bij ieder AI-antwoord.
+
+De audio wordt gestreamd via de OpenAI text-to-speech API zodat je vrijwel direct kunt luisteren terwijl het antwoord nog binnenkomt.
 
 ### System Prompt toevoegen
 

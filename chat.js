@@ -65,6 +65,238 @@ const LEARNING_BLOCKS = [
     }
 ];
 
+class TTSPlayer {
+    constructor(apiKey, options = {}) {
+        this.apiKey = apiKey;
+        this.voice = options.defaultVoice || 'alloy';
+        this.activeSession = null;
+    }
+
+    setApiKey(apiKey) {
+        this.apiKey = apiKey;
+    }
+
+    hasApiKey() {
+        return Boolean(this.apiKey);
+    }
+
+    setVoice(voice) {
+        this.voice = voice;
+    }
+
+    stop() {
+        if (this.activeSession) {
+            try {
+                this.activeSession.audio.pause();
+            } catch (error) {
+                console.warn('Kon audio niet pauzeren', error);
+            }
+            this.activeSession.cleanup();
+            this.activeSession = null;
+        }
+    }
+
+    async playText(text) {
+        if (!this.hasApiKey()) {
+            throw new Error('OpenAI API sleutel ontbreekt. Voeg deze toe in settings.js.');
+        }
+
+        this.stop();
+
+        const session = await this.createStreamingSession(text);
+        this.activeSession = session;
+
+        try {
+            const audio = await session.ready;
+            await audio.play();
+
+            const handlePlaybackFinished = () => {
+                if (this.activeSession === session) {
+                    this.activeSession = null;
+                }
+                session.cleanup();
+            };
+
+            audio.addEventListener('ended', handlePlaybackFinished, { once: true });
+            audio.addEventListener('pause', () => {
+                if (audio.currentTime < audio.duration) {
+                    handlePlaybackFinished();
+                }
+            }, { once: true });
+
+            return audio;
+        } catch (error) {
+            session.cleanup();
+            if (this.activeSession === session) {
+                this.activeSession = null;
+            }
+            throw error;
+        }
+    }
+
+    async createStreamingSession(text) {
+        const response = await fetch('https://api.openai.com/v1/audio/speech', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.apiKey}`,
+                'Accept': 'audio/mpeg'
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o-mini-tts',
+                voice: this.voice,
+                input: text,
+                format: 'mpeg'
+            })
+        });
+
+        if (!response.ok) {
+            let errorMessage = 'Text-to-speech verzoek mislukt.';
+            try {
+                const errorData = await response.json();
+                if (errorData?.error?.message) {
+                    errorMessage = errorData.error.message;
+                }
+            } catch (parseError) {
+                console.warn('Kon foutbericht niet lezen', parseError);
+            }
+            throw new Error(errorMessage);
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+            throw new Error('Streaming wordt niet ondersteund in deze browser.');
+        }
+
+        const audio = new Audio();
+        audio.preload = 'auto';
+
+        const mediaSource = new MediaSource();
+        const objectUrl = URL.createObjectURL(mediaSource);
+        audio.src = objectUrl;
+
+        let cleanupCalled = false;
+        let sourceBuffer;
+        let updateHandler;
+
+        const cleanup = () => {
+            if (cleanupCalled) return;
+            cleanupCalled = true;
+
+            try {
+                reader.cancel().catch(() => {});
+            } catch (error) {
+                console.warn('Kon reader niet annuleren', error);
+            }
+
+            if (sourceBuffer && updateHandler) {
+                try {
+                    sourceBuffer.removeEventListener('updateend', updateHandler);
+                } catch (error) {
+                    console.warn('Kon update listener niet verwijderen', error);
+                }
+            }
+
+            try {
+                mediaSource.endOfStream();
+            } catch (_) {
+                // Ignored - kan voorkomen als de stream al beëindigd is
+            }
+
+            try {
+                audio.pause();
+            } catch (_) {}
+
+            try {
+                audio.removeAttribute('src');
+                audio.load();
+            } catch (_) {}
+
+            try {
+                URL.revokeObjectURL(objectUrl);
+            } catch (error) {
+                console.warn('Kon object URL niet vrijgeven', error);
+            }
+        };
+
+        const ready = new Promise((resolve, reject) => {
+            mediaSource.addEventListener('sourceopen', () => {
+                try {
+                    sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+                } catch (error) {
+                    reject(error);
+                    return;
+                }
+
+                const queue = [];
+                let isEnded = false;
+                let firstChunkResolved = false;
+
+                updateHandler = () => {
+                    if (!sourceBuffer || sourceBuffer.updating) {
+                        return;
+                    }
+
+                    if (queue.length > 0) {
+                        const chunk = queue.shift();
+                        try {
+                            sourceBuffer.appendBuffer(chunk);
+                        } catch (error) {
+                            reject(error);
+                        }
+                    } else if (isEnded) {
+                        try {
+                            mediaSource.endOfStream();
+                        } catch (_) {}
+                    }
+                };
+
+                sourceBuffer.addEventListener('updateend', updateHandler);
+
+                const pump = async () => {
+                    try {
+                        while (true) {
+                            const { value, done } = await reader.read();
+
+                            if (done) {
+                                isEnded = true;
+                                updateHandler();
+                                if (!firstChunkResolved) {
+                                    firstChunkResolved = true;
+                                    resolve(audio);
+                                }
+                                break;
+                            }
+
+                            const chunk = value.buffer.slice(
+                                value.byteOffset,
+                                value.byteOffset + value.byteLength
+                            );
+                            queue.push(chunk);
+                            updateHandler();
+
+                            if (!firstChunkResolved) {
+                                firstChunkResolved = true;
+                                resolve(audio);
+                            }
+                        }
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+
+                pump();
+            }, { once: true });
+
+            mediaSource.addEventListener('error', () => {
+                reject(new Error('Er trad een fout op bij het verwerken van de audiostream.'));
+            }, { once: true });
+        });
+
+        return { audio, ready, cleanup };
+    }
+}
+
 class ChatInterface {
     constructor() {
         this.messages = [];
@@ -76,7 +308,21 @@ class ChatInterface {
         this.systemPrompt = '';
         this.initialUserPrompt = '';
 
-        
+        this.settings = window.APP_SETTINGS || {};
+        this.availableVoices = [
+            { value: 'alloy', label: 'Alloy' },
+            { value: 'verse', label: 'Verse' },
+            { value: 'sol', label: 'Sol' },
+            { value: 'luna', label: 'Luna' },
+            { value: 'ember', label: 'Ember' }
+        ];
+
+        this.ttsPlayer = new TTSPlayer(this.settings.OPENAI_API_KEY || '', {
+            defaultVoice: this.settings.DEFAULT_TTS_VOICE || 'alloy'
+        });
+        this.selectedVoice = this.ttsPlayer.voice;
+        this.currentTtsButton = null;
+
         this.elements = {
             startPage: document.getElementById('startPage'),
             blocksContainer: document.getElementById('blocksContainer'),
@@ -85,7 +331,8 @@ class ChatInterface {
             userInput: document.getElementById('userInput'),
             sendBtn: document.getElementById('sendBtn'),
             status: document.getElementById('status'),
-            backBtn: document.getElementById('backBtn')
+            backBtn: document.getElementById('backBtn'),
+            voiceSelect: document.getElementById('voiceSelect')
         };
         
         this.init();
@@ -117,14 +364,52 @@ class ChatInterface {
     
     async init() {
         await this.loadPrompts();
+        this.setupVoiceSelection();
         this.renderStartPage();
         this.attachEventListeners();
     }
-    
+
+    setupVoiceSelection() {
+        if (!this.elements.voiceSelect) {
+            return;
+        }
+
+        this.elements.voiceSelect.innerHTML = '';
+
+        this.availableVoices.forEach(voice => {
+            const option = document.createElement('option');
+            option.value = voice.value;
+            option.textContent = voice.label;
+            this.elements.voiceSelect.appendChild(option);
+        });
+
+        const hasDefaultVoice = this.availableVoices.some(voice => voice.value === this.selectedVoice);
+
+        if (hasDefaultVoice) {
+            this.elements.voiceSelect.value = this.selectedVoice;
+        } else if (this.availableVoices.length > 0) {
+            this.selectedVoice = this.availableVoices[0].value;
+            this.elements.voiceSelect.value = this.selectedVoice;
+            this.ttsPlayer.setVoice(this.selectedVoice);
+        }
+
+        this.elements.voiceSelect.addEventListener('change', (event) => {
+            this.selectedVoice = event.target.value;
+            this.ttsPlayer.setVoice(this.selectedVoice);
+
+            if (this.currentTtsButton) {
+                this.resetTtsButton(this.currentTtsButton);
+                this.currentTtsButton = null;
+            }
+
+            this.ttsPlayer.stop();
+        });
+    }
+
     renderStartPage() {
         this.elements.startPage.classList.remove('hidden');
         this.elements.chatContainer.classList.add('hidden');
-        
+
         this.elements.blocksContainer.innerHTML = '';
         
         this.learningBlocks.forEach(block => {
@@ -346,11 +631,135 @@ class ChatInterface {
         }
         
         messageDiv.appendChild(contentDiv);
+
+        if (role === 'assistant') {
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'message-actions';
+
+            const ttsButton = document.createElement('button');
+            ttsButton.type = 'button';
+            ttsButton.className = 'tts-button';
+            ttsButton.textContent = '🔊 Voorlezen';
+            ttsButton.dataset.state = 'idle';
+            ttsButton.setAttribute('aria-label', 'Voorlezen met text-to-speech');
+            ttsButton.addEventListener('click', () => this.handleTextToSpeech(content, ttsButton));
+
+            actionsDiv.appendChild(ttsButton);
+            messageDiv.appendChild(actionsDiv);
+        }
+
         this.elements.messagesDiv.appendChild(messageDiv);
-        
+
         this.scrollToBottom();
     }
-    
+
+    async handleTextToSpeech(content, button) {
+        if (!button) {
+            return;
+        }
+
+        if (button.dataset.state === 'playing') {
+            this.ttsPlayer.stop();
+            this.resetTtsButton(button);
+            this.currentTtsButton = null;
+            return;
+        }
+
+        const plainText = this.getPlainTextForSpeech(content);
+
+        if (!plainText) {
+            this.showTtsError(new Error('Bericht bevat geen voorleesbare tekst om voor te lezen.'));
+            return;
+        }
+
+        if (!this.ttsPlayer.hasApiKey()) {
+            this.showTtsError(new Error('OpenAI API sleutel ontbreekt. Vul deze in via settings.js.'));
+            return;
+        }
+
+        if (this.currentTtsButton && this.currentTtsButton !== button) {
+            this.resetTtsButton(this.currentTtsButton);
+        }
+
+        this.ttsPlayer.stop();
+        this.currentTtsButton = button;
+
+        const originalLabel = button.textContent;
+        button.dataset.originalLabel = originalLabel;
+        button.dataset.state = 'loading';
+        button.disabled = true;
+        button.textContent = '⏳ Bezig...';
+
+        try {
+            this.ttsPlayer.setVoice(this.selectedVoice);
+            const audio = await this.ttsPlayer.playText(plainText);
+
+            button.disabled = false;
+            button.dataset.state = 'playing';
+            button.textContent = '⏹️ Stop';
+
+            const reset = () => {
+                if (this.currentTtsButton === button) {
+                    this.currentTtsButton = null;
+                }
+                this.resetTtsButton(button);
+            };
+
+            audio.addEventListener('ended', reset, { once: true });
+            audio.addEventListener('pause', () => {
+                if (audio.currentTime < audio.duration) {
+                    reset();
+                }
+            }, { once: true });
+        } catch (error) {
+            this.showTtsError(error);
+            this.resetTtsButton(button);
+            this.currentTtsButton = null;
+        }
+    }
+
+    resetTtsButton(button) {
+        if (!button) {
+            return;
+        }
+
+        const originalLabel = button.dataset.originalLabel || '🔊 Voorlezen';
+        button.disabled = false;
+        button.textContent = originalLabel;
+        button.dataset.state = 'idle';
+        delete button.dataset.originalLabel;
+    }
+
+    showTtsError(error) {
+        const messageText = error?.message || 'Er ging iets mis bij het afspelen van de spraak.';
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'message error-message';
+        errorDiv.innerHTML = `
+            <div class="message-content">
+                <strong>Spraak fout:</strong> ${this.escapeHtml(messageText)}
+            </div>
+        `;
+        this.elements.messagesDiv.appendChild(errorDiv);
+        this.scrollToBottom();
+    }
+
+    getPlainTextForSpeech(content) {
+        if (!content) {
+            return '';
+        }
+
+        let text = String(content);
+
+        text = text.replace(/```[\s\S]*?```/g, ' ');
+        text = text.replace(/`([^`]+)`/g, '$1');
+        text = text.replace(/\[(.*?)\]\((.*?)\)/g, '$1');
+        text = text.replace(/^\s*[-*+]\s+/gm, '');
+        text = text.replace(/[>#*_~]/g, '');
+        text = text.replace(/\s+/g, ' ');
+
+        return text.trim();
+    }
+
     addTypingIndicator() {
         const typingDiv = document.createElement('div');
         typingDiv.className = 'message assistant-message';
