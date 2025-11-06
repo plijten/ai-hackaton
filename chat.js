@@ -32,6 +32,8 @@ class ChatInterface {
                     role: 'system',
                     content: this.systemPrompt.trim()
                 });
+            } else {
+                console.warn('system_prompt.txt not found, AI will use default behavior without system prompt');
             }
             
             // Load initial user prompt from text file
@@ -43,10 +45,12 @@ class ChatInterface {
                 if (initialMessage) {
                     initialMessage.textContent = this.initialUserPrompt.trim();
                 }
+            } else {
+                console.warn('user_prompt.txt not found, using hardcoded initial message from HTML');
             }
         } catch (error) {
             console.error('Error loading prompts:', error);
-            // Fallback to default behavior if files can't be loaded
+            // Fallback to default behavior: no system prompt and hardcoded HTML message
         }
     }
     
