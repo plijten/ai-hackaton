@@ -1,67 +1,21 @@
 // Learning blocks configuration version (increment when structure changes)
-const BLOCKS_VERSION = 1;
+const BLOCKS_VERSION = 2;
 
-// Learning blocks configuration
+// Default fallback blocks (used only if leerdoelen.json can't be loaded)
 const LEARNING_BLOCKS = [
     {
         id: 1,
-        title: "Blok 1: Basis Programmeerconcepten",
-        description: "Leer de fundamenten van programmeren",
+        title: "Leerdoel 1",
+        description: "Voorbeeld leerdoel (fallback)",
         objectives: [
             {
                 id: 1,
-                text: "Variabelen en datatypes begrijpen",
-                keywords: ["variabele", "datatype", "string", "number", "boolean"],
-                completed: false
-            },
-            {
-                id: 2,
-                text: "Loops en conditionals toepassen",
-                keywords: ["loop", "if", "else", "for", "while", "conditional"],
+                text: "Voorbeeld leerdoel",
+                keywords: ["voorbeeld", "leerdoel"],
                 completed: false
             }
         ],
         locked: false
-    },
-    {
-        id: 2,
-        title: "Blok 2: Functies en Arrays",
-        description: "Werk met functies en datastructuren",
-        objectives: [
-            {
-                id: 3,
-                text: "Functies schrijven en aanroepen",
-                keywords: ["functie", "function", "parameter", "return"],
-                completed: false
-            },
-            {
-                id: 4,
-                text: "Arrays manipuleren",
-                keywords: ["array", "push", "pop", "map", "filter"],
-                completed: false
-            }
-        ],
-        locked: true
-    },
-    {
-        id: 3,
-        title: "Blok 3: DOM Manipulatie",
-        description: "Interactieve webpagina's maken",
-        objectives: [
-            {
-                id: 5,
-                text: "DOM elementen selecteren en wijzigen",
-                keywords: ["dom", "queryselector", "innerhtml", "element"],
-                completed: false
-            },
-            {
-                id: 6,
-                text: "Event listeners toevoegen",
-                keywords: ["event", "listener", "click", "addeventlistener"],
-                completed: false
-            }
-        ],
-        locked: true
     }
 ];
 
@@ -302,7 +256,8 @@ class ChatInterface {
         this.messages = [];
         this.isProcessing = false;
 
-        this.learningBlocks = this.loadLearningBlocks();
+    // Will be loaded asynchronously from leerdoelen.json
+    this.learningBlocks = [];
         this.currentBlock = null;
 
         this.systemPrompt = '';
@@ -338,22 +293,101 @@ class ChatInterface {
         this.init();
     }
     
-    loadLearningBlocks() {
+    async loadLearningBlocks() {
+        // Always try to load from leerdoelen.json and then merge with saved progress
         const saved = localStorage.getItem('learningBlocks');
         const savedVersion = localStorage.getItem('blocksVersion');
-        
-        // Check if saved data exists and version matches
+        let savedBlocks = null;
         if (saved && saved !== 'undefined' && savedVersion === String(BLOCKS_VERSION)) {
             try {
-                return JSON.parse(saved);
+                savedBlocks = JSON.parse(saved);
             } catch (e) {
-                console.warn('Failed to parse saved learning blocks, using defaults', e);
+                console.warn('Kon opgeslagen voortgang niet lezen, wordt genegeerd', e);
             }
         }
-        
-        // Version mismatch or no saved data - use default blocks
-        const blocks = JSON.parse(JSON.stringify(LEARNING_BLOCKS)); // Deep copy
+
+        let blocksFromJson = null;
+        try {
+            const resp = await fetch('leerdoelen.json');
+            if (resp.ok) {
+                const data = await resp.json();
+                const doelen = Array.isArray(data?.leerdoelen) ? data.leerdoelen : [];
+                blocksFromJson = this.buildBlocksFromLeerdoelen(doelen);
+            } else {
+                console.warn('Kon leerdoelen.json niet laden, status:', resp.status);
+            }
+        } catch (err) {
+            console.warn('Fout bij laden van leerdoelen.json:', err);
+        }
+
+        let blocks = blocksFromJson || JSON.parse(JSON.stringify(LEARNING_BLOCKS));
+
+        // Merge saved completion/locked state by id if available
+        if (savedBlocks && Array.isArray(savedBlocks)) {
+            const map = new Map(savedBlocks.map(b => [b.id, b]));
+            blocks = blocks.map((b, idx) => {
+                const savedB = map.get(b.id);
+                if (!savedB) return b;
+                // merge objectives completion by id
+                if (Array.isArray(b.objectives) && Array.isArray(savedB.objectives)) {
+                    const objMap = new Map(savedB.objectives.map(o => [o.id, o]));
+                    b.objectives = b.objectives.map(o => {
+                        const so = objMap.get(o.id);
+                        return so ? { ...o, completed: !!so.completed } : o;
+                    });
+                }
+                // keep locked state from saved if present
+                if (typeof savedB.locked === 'boolean') {
+                    b.locked = savedB.locked;
+                }
+                return b;
+            });
+        }
+
+        this.learningBlocks = blocks;
         this.saveLearningBlocks();
+        return blocks;
+    }
+
+    buildBlocksFromLeerdoelen(doelen) {
+        // Create one block per leerdoel with the description as the single objective
+        const stopwords = new Set([
+            'de','het','een','en','van','voor','met','op','in','zoals','bij','het','de','te','om','kan','kunnen','heeft','hebben','wordt','worden','zoals','deze','dit','die','dat','ai','modellen','model','gebruik','gebruiken'
+        ]);
+        const blocks = doelen
+            .filter(d => d && (typeof d.id === 'number' || typeof d.id === 'string') && d.beschrijving)
+            .map((d, idx) => {
+                const idNum = Number(d.id);
+                const title = `Leerdoel ${isNaN(idNum) ? String(d.id) : idNum}`;
+                const text = String(d.beschrijving).trim();
+                // naive keyword extraction
+                const keywords = Array.from(new Set(
+                    text
+                        .toLowerCase()
+                        .replace(/[^a-zà-ž0-9\s]/gi, ' ')
+                        .split(/\s+/)
+                        .filter(w => w && w.length >= 3 && !stopwords.has(w))
+                )).slice(0, 8);
+                return {
+                    id: isNaN(idNum) ? idx + 1 : idNum,
+                    title,
+                    description: text,
+                    objectives: [
+                        {
+                            id: isNaN(idNum) ? idx + 1 : idNum,
+                            text,
+                            keywords,
+                            completed: false
+                        }
+                    ],
+                    locked: idx !== 0 // only first unlocked
+                };
+            });
+
+        // ensure at least one block exists
+        if (blocks.length === 0) {
+            return JSON.parse(JSON.stringify(LEARNING_BLOCKS));
+        }
         return blocks;
     }
     
@@ -364,6 +398,7 @@ class ChatInterface {
     
     async init() {
         await this.loadPrompts();
+        await this.loadLearningBlocks();
         this.setupVoiceSelection();
         this.renderStartPage();
         this.attachEventListeners();

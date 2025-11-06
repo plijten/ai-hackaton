@@ -61,8 +61,9 @@ Geen API key nodig om te chatten - alle communicatie vindt plaats met je lokale 
 .
 ├── index.html      # Hoofd HTML bestand met de chat interface
 ├── styles.css      # Styling voor de chat interface
-├── chat.js         # JavaScript logica voor de chat en text-to-speech
+├── chat.js         # JavaScript logica voor de chat, modules en text-to-speech
 ├── settings.js     # Configuratiebestand voor de OpenAI API sleutel en standaard stem
+├── leerdoelen.json # Lijst met leerdoelen waaruit modules automatisch worden opgebouwd
 └── README.md       # Deze documentatie
 ```
 
@@ -105,6 +106,29 @@ Vereist moderne JavaScript features zoals:
 - LocalStorage API
 
 ## Aanpassingen
+
+### Modules uit leerdoelen.json (nieuw)
+
+De startpagina met modules wordt nu dynamisch opgebouwd uit `leerdoelen.json`. Voor ieder leerdoel in het JSON-bestand wordt automatisch één module aangemaakt met precies één leerdoel.
+
+Voorbeeld van `leerdoelen.json`:
+
+```json
+{
+    "leerdoelen": [
+        { "id": 1, "beschrijving": "Heeft specialistische kennis van technieken ..." },
+        { "id": 2, "beschrijving": "Heeft specialistische kennis van de achterliggende technologie ..." }
+    ]
+}
+```
+
+Belangrijke details:
+- De titel van de module wordt `Leerdoel <id>`.
+- De beschrijving wordt gebruikt als het enige leerdoel binnen de module.
+- Slechts de eerste module is ontgrendeld; volgende modules ontgrendelen wanneer de vorige klaar is.
+- Behaalde voortgang blijft bewaard in de browser via LocalStorage.
+
+Als `leerdoelen.json` niet geladen kan worden, valt de app terug op een minimale ingebouwde fallback-module.
 
 ### Lokale LLM server poort wijzigen
 

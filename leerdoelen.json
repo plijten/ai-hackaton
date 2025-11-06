@@ -1,0 +1,56 @@
+{
+  "leerdoelen": [
+    {
+      "id": 1,
+      "beschrijving": "Heeft specialistische kennis van technieken voor het samenstellen, trainen en evalueren van AI-oplossingen voor specifieke doeleinden."
+    },
+    {
+      "id": 2,
+      "beschrijving": "Heeft specialistische kennis van de achterliggende technologie van verschillende typen AI-modellen."
+    },
+    {
+      "id": 3,
+      "beschrijving": "Heeft kennis van strategieën voor het veilig en verantwoord gebruik van AI-modellen."
+    },
+    {
+      "id": 4,
+      "beschrijving": "Heeft kennis van complexe beoordelingsmethoden, zoals fact-checking en stijlvergelijking."
+    },
+    {
+      "id": 5,
+      "beschrijving": "Heeft specialistische kennis van bias, betrouwbaarheid en representativiteit bij het gebruik van AI-modellen."
+    },
+    {
+      "id": 6,
+      "beschrijving": "Heeft kennis van auteurs- en eigendomsrecht bij het gebruik van data voor AI-oplossingen."
+    },
+    {
+      "id": 7,
+      "beschrijving": "Heeft kennis van wet- en regelgeving voor het gebruik van AI in de beroepspraktijk, zoals de AIGP."
+    },
+    {
+      "id": 8,
+      "beschrijving": "Kan analytische vaardigheden toepassen bij het evalueren van AI-oplossingen voor specifieke doeleinden."
+    },
+    {
+      "id": 9,
+      "beschrijving": "Heeft kennis van AI-algoritmes, zoals deep learning, reinforcement learning en natural language processing."
+    },
+    {
+      "id": 10,
+      "beschrijving": "Kan eisen opstellen waaraan een (NLP) AI-oplossing moet voldoen."
+    },
+    {
+      "id": 11,
+      "beschrijving": "Kan geavanceerde tools bedienen om AI-modellen aan te passen voor specifieke doeleinden."
+    },
+    {
+      "id": 12,
+      "beschrijving": "Kan onderzoeksvaardigheden toepassen om informatie te verzamelen over AI-modellen."
+    },
+    {
+      "id": 13,
+      "beschrijving": "Heeft kennis van de ethische aspecten, zoals privacy en digitale veiligheid, bij het gebruik van AI-modellen."
+    }
+  ]
+}
