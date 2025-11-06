@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenAI Chat Interface</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="chat-header">
+            <h1>AI Chat Assistant</h1>
+            <div class="status" id="status">Klaar</div>
+        </div>
+        
+        <div class="api-key-section" id="apiKeySection">
+            <div class="api-key-input-container">
+                <input 
+                    type="password" 
+                    id="apiKeyInput" 
+                    placeholder="Voer je OpenAI API key in"
+                    class="api-key-input"
+                />
+                <button id="saveApiKeyBtn" class="save-btn">Opslaan</button>
+            </div>
+            <p class="api-key-info">
+                Je API key wordt lokaal opgeslagen in je browser en nooit naar een externe server gestuurd (behalve OpenAI).
+                <br>
+                Krijg je API key op <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a>
+            </p>
+        </div>
+
+        <div class="chat-container" id="chatContainer">
+            <div class="messages" id="messages">
+                <div class="message assistant-message">
+                    <div class="message-content">
+                        Hallo! Ik ben je AI assistent. Hoe kan ik je vandaag helpen?
+                    </div>
+                </div>
+            </div>
+            
+            <div class="input-area">
+                <textarea 
+                    id="userInput" 
+                    placeholder="Typ je bericht hier..."
+                    rows="1"
+                ></textarea>
+                <button id="sendBtn" class="send-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="chat.js"></script>
+</body>
+</html>
