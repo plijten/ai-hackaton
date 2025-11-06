@@ -150,8 +150,9 @@ class ChatInterface {
         this.addTypingIndicator();
         
         try {
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            const response = await fetch('http://localhost:1234/v1/chat/completions', {
                 method: 'POST',
+                mode: 'cors', // Explicitly set CORS mode
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${this.apiKey}`
