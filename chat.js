@@ -1,22 +1,172 @@
+// Learning blocks configuration
+const LEARNING_BLOCKS = [
+    {
+        id: 1,
+        title: "Blok 1: Basis Programmeerconcepten",
+        description: "Leer de fundamenten van programmeren",
+        objectives: [
+            {
+                id: 1,
+                text: "Variabelen en datatypes begrijpen",
+                keywords: ["variabele", "datatype", "string", "number", "boolean"],
+                completed: false
+            },
+            {
+                id: 2,
+                text: "Loops en conditionals toepassen",
+                keywords: ["loop", "if", "else", "for", "while", "conditional"],
+                completed: false
+            }
+        ],
+        locked: false
+    },
+    {
+        id: 2,
+        title: "Blok 2: Functies en Arrays",
+        description: "Werk met functies en datastructuren",
+        objectives: [
+            {
+                id: 3,
+                text: "Functies schrijven en aanroepen",
+                keywords: ["functie", "function", "parameter", "return"],
+                completed: false
+            },
+            {
+                id: 4,
+                text: "Arrays manipuleren",
+                keywords: ["array", "push", "pop", "map", "filter"],
+                completed: false
+            }
+        ],
+        locked: true
+    },
+    {
+        id: 3,
+        title: "Blok 3: DOM Manipulatie",
+        description: "Interactieve webpagina's maken",
+        objectives: [
+            {
+                id: 5,
+                text: "DOM elementen selecteren en wijzigen",
+                keywords: ["dom", "queryselector", "innerhtml", "element"],
+                completed: false
+            },
+            {
+                id: 6,
+                text: "Event listeners toevoegen",
+                keywords: ["event", "listener", "click", "addeventlistener"],
+                completed: false
+            }
+        ],
+        locked: true
+    }
+];
+
 class ChatInterface {
     constructor() {
         this.messages = [];
         this.isProcessing = false;
+        this.learningBlocks = this.loadLearningBlocks();
+        this.currentBlock = null;
         
         this.elements = {
+            startPage: document.getElementById('startPage'),
+            blocksContainer: document.getElementById('blocksContainer'),
             chatContainer: document.getElementById('chatContainer'),
             messagesDiv: document.getElementById('messages'),
             userInput: document.getElementById('userInput'),
             sendBtn: document.getElementById('sendBtn'),
-            status: document.getElementById('status')
+            status: document.getElementById('status'),
+            backBtn: document.getElementById('backBtn')
         };
         
         this.init();
     }
     
+    loadLearningBlocks() {
+        const saved = localStorage.getItem('learningBlocks');
+        if (saved) {
+            return JSON.parse(saved);
+        }
+        return JSON.parse(JSON.stringify(LEARNING_BLOCKS)); // Deep copy
+    }
+    
+    saveLearningBlocks() {
+        localStorage.setItem('learningBlocks', JSON.stringify(this.learningBlocks));
+    }
+    
     init() {
-        this.showChat();
+        this.renderStartPage();
         this.attachEventListeners();
+    }
+    
+    renderStartPage() {
+        this.elements.startPage.classList.remove('hidden');
+        this.elements.chatContainer.classList.add('hidden');
+        
+        this.elements.blocksContainer.innerHTML = '';
+        
+        this.learningBlocks.forEach(block => {
+            const blockEl = this.createBlockElement(block);
+            this.elements.blocksContainer.appendChild(blockEl);
+        });
+    }
+    
+    createBlockElement(block) {
+        const blockDiv = document.createElement('div');
+        blockDiv.className = `block ${block.locked ? 'locked' : ''}`;
+        
+        const completedObjectives = block.objectives.filter(o => o.completed).length;
+        const totalObjectives = block.objectives.length;
+        const progress = (completedObjectives / totalObjectives) * 100;
+        
+        blockDiv.innerHTML = `
+            <div class="block-header">
+                <h2>${block.title}</h2>
+                ${block.locked ? '<span class="lock-icon">🔒</span>' : ''}
+            </div>
+            <p class="block-description">${block.description}</p>
+            <div class="objectives">
+                <h3>Leerdoelen:</h3>
+                <ul>
+                    ${block.objectives.map(obj => `
+                        <li class="${obj.completed ? 'completed' : ''}">
+                            ${obj.completed ? '✅' : '⭕'} ${obj.text}
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: ${progress}%"></div>
+            </div>
+            <div class="progress-text">${completedObjectives}/${totalObjectives} leerdoelen behaald</div>
+            ${!block.locked ? `<button class="start-block-btn" data-block-id="${block.id}">Start Blok</button>` : '<p class="locked-message">Voltooi het vorige blok om dit te ontgrendelen</p>'}
+        `;
+        
+        const startBtn = blockDiv.querySelector('.start-block-btn');
+        if (startBtn) {
+            startBtn.addEventListener('click', () => this.startBlock(block));
+        }
+        
+        return blockDiv;
+    }
+    
+    startBlock(block) {
+        this.currentBlock = block;
+        this.elements.startPage.classList.add('hidden');
+        this.showChat();
+        
+        // Add system message about the block
+        const systemMessage = `Je bent nu bezig met ${block.title}. De volgende leerdoelen moet je behalen:\n\n${block.objectives.filter(o => !o.completed).map(o => `- ${o.text}`).join('\n')}\n\nStel vragen over deze onderwerpen en ik help je om ze te begrijpen!`;
+        
+        this.messages = [{
+            role: 'system',
+            content: `Je bent een vriendelijke leraar die studenten helpt met programmeren. De student werkt aan "${block.title}". Begeleid de student door de leerdoelen: ${block.objectives.map(o => o.text).join(', ')}. Geef uitleg, voorbeelden en stel vragen om te controleren of de student het begrijpt. Als de student een onderwerp goed begrijpt en kan toepassen, geef dan duidelijk aan dat het leerdoel is behaald.`
+        }];
+        
+        // Clear previous messages from UI
+        this.elements.messagesDiv.innerHTML = '';
+        this.addMessage('assistant', systemMessage);
     }
     
     attachEventListeners() {
@@ -31,10 +181,20 @@ class ChatInterface {
         this.elements.userInput.addEventListener('input', () => {
             this.autoResizeTextarea();
         });
+        
+        if (this.elements.backBtn) {
+            this.elements.backBtn.addEventListener('click', () => this.goBackToStart());
+        }
     }
     
     showChat() {
         this.elements.chatContainer.classList.remove('hidden');
+    }
+    
+    goBackToStart() {
+        this.elements.chatContainer.classList.add('hidden');
+        this.currentBlock = null;
+        this.renderStartPage();
     }
     
     autoResizeTextarea() {
@@ -140,6 +300,9 @@ class ChatInterface {
             this.removeTypingIndicator();
             this.addMessage('assistant', assistantMessage);
             
+            // Check if any learning objectives are completed
+            this.checkObjectiveCompletion(assistantMessage);
+            
         } catch (error) {
             console.error('Error:', error);
             this.removeTypingIndicator();
@@ -163,11 +326,111 @@ class ChatInterface {
         }
     }
     
+    checkObjectiveCompletion(message) {
+        if (!this.currentBlock) return;
+        
+        const lowerMessage = message.toLowerCase();
+        let objectiveCompleted = false;
+        
+        // Check if the message indicates objective completion
+        const completionPhrases = [
+            'leerdoel behaald',
+            'leerdoel is behaald',
+            'objective completed',
+            'goed begrepen',
+            'uitstekend begrepen',
+            'je begrijpt het',
+            'dat klopt helemaal'
+        ];
+        
+        const hasCompletionPhrase = completionPhrases.some(phrase => 
+            lowerMessage.includes(phrase)
+        );
+        
+        if (hasCompletionPhrase) {
+            // Try to match with uncompleted objectives
+            this.currentBlock.objectives.forEach(obj => {
+                if (!obj.completed) {
+                    const hasKeywords = obj.keywords.some(keyword => 
+                        lowerMessage.includes(keyword.toLowerCase())
+                    );
+                    
+                    if (hasKeywords) {
+                        obj.completed = true;
+                        objectiveCompleted = true;
+                        this.showObjectiveCompletedNotification(obj);
+                    }
+                }
+            });
+            
+            // Save progress
+            this.saveLearningBlocks();
+            
+            // Check if all objectives in current block are completed
+            const allCompleted = this.currentBlock.objectives.every(o => o.completed);
+            if (allCompleted) {
+                this.onBlockCompleted();
+            }
+        }
+    }
+    
+    showObjectiveCompletedNotification(objective) {
+        const notification = document.createElement('div');
+        notification.className = 'message achievement-message';
+        notification.innerHTML = `
+            <div class="message-content">
+                <strong>🎉 Leerdoel Behaald!</strong><br>
+                ${objective.text}
+            </div>
+        `;
+        this.elements.messagesDiv.appendChild(notification);
+        this.scrollToBottom();
+    }
+    
+    onBlockCompleted() {
+        const currentBlockIndex = this.learningBlocks.findIndex(b => b.id === this.currentBlock.id);
+        
+        // Unlock next block
+        if (currentBlockIndex < this.learningBlocks.length - 1) {
+            this.learningBlocks[currentBlockIndex + 1].locked = false;
+            this.saveLearningBlocks();
+            
+            const notification = document.createElement('div');
+            notification.className = 'message achievement-message';
+            notification.innerHTML = `
+                <div class="message-content">
+                    <strong>🎊 Blok Voltooid!</strong><br>
+                    Je hebt ${this.currentBlock.title} afgerond! Het volgende blok is nu ontgrendeld.
+                    <br><br>
+                    <button class="back-to-start-btn" onclick="chatInterface.goBackToStart()">Terug naar Overzicht</button>
+                </div>
+            `;
+            this.elements.messagesDiv.appendChild(notification);
+            this.scrollToBottom();
+        } else {
+            const notification = document.createElement('div');
+            notification.className = 'message achievement-message';
+            notification.innerHTML = `
+                <div class="message-content">
+                    <strong>🏆 Gefeliciteerd!</strong><br>
+                    Je hebt alle blokken voltooid! Geweldig werk!
+                    <br><br>
+                    <button class="back-to-start-btn" onclick="chatInterface.goBackToStart()">Terug naar Overzicht</button>
+                </div>
+            `;
+            this.elements.messagesDiv.appendChild(notification);
+            this.scrollToBottom();
+        }
+    }
+    
     scrollToBottom() {
         this.elements.messagesDiv.scrollTop = this.elements.messagesDiv.scrollHeight;
     }
 }
 
+// Global instance for inline event handlers
+let chatInterface;
+
 document.addEventListener('DOMContentLoaded', () => {
-    new ChatInterface();
+    chatInterface = new ChatInterface();
 });
