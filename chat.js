@@ -108,6 +108,7 @@ class ChatInterface {
         this.addTypingIndicator();
         
         try {
+            // Using HTTP for localhost - local LLM servers typically don't use HTTPS
             const response = await fetch('http://localhost:1234/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -116,7 +117,10 @@ class ChatInterface {
                 body: JSON.stringify({
                     messages: this.messages,
                     temperature: 0.7,
-                    max_tokens: 1000
+                    max_tokens: 1000,
+                    // Some local LLM servers may require a model parameter
+                    // If your server requires it, uncomment and specify your model:
+                    // model: 'your-model-name'
                 })
             });
             
