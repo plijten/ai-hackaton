@@ -61,6 +61,9 @@ class ChatInterface {
             alert('OpenAI API keys beginnen meestal met "sk-". Weet je zeker dat dit correct is?');
         }
         
+        // Note: API key is stored in plain text in localStorage
+        // This is acceptable for a demo/hackathon project where the key is only used client-side
+        // For production use, consider additional security measures
         this.apiKey = apiKey;
         localStorage.setItem('openai_api_key', apiKey);
         this.showChat();

@@ -73,10 +73,21 @@ De chat interface gebruikt de volgende OpenAI API instellingen:
 
 ### Beveiliging
 
+⚠️ **Belangrijk voor productie gebruik:**
+
+- API keys worden in **plain text** opgeslagen in browser localStorage
+- Dit is acceptabel voor demo/hackathon doeleinden waarbij de key alleen client-side wordt gebruikt
+- Voor productie gebruik wordt aanbevolen:
+  - Server-side API key management te implementeren
+  - Rate limiting en usage monitoring toe te voegen
+  - HTTPS te gebruiken
+  - Environment variables te gebruiken voor gevoelige configuratie
+
+**Huidig beveiligingsmodel:**
 - API keys worden alleen lokaal opgeslagen in browser local storage
 - Geen API keys worden naar andere servers gestuurd (behalve OpenAI)
-- HTTPS wordt aanbevolen voor productie gebruik
 - Alle API calls gaan direct van de browser naar OpenAI
+- Keys zijn toegankelijk via browser developer tools (dit is inherent aan client-side oplossingen)
 
 ### Browser Compatibiliteit
 
