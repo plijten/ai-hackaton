@@ -1,15 +1,15 @@
-# OpenAI Chat Interface
+# Local LLM Chat Interface
 
-Een moderne, gebruiksvriendelijke chat interface in JavaScript die via de OpenAI API met gebruikers kan communiceren.
+Een moderne, gebruiksvriendelijke chat interface in JavaScript die communiceert met een lokaal draaiend LLM.
 
 ## Kenmerken
 
 - 🎨 Modern en responsief UI design
-- 💬 Real-time chat met OpenAI's GPT-3.5 Turbo model
-- 🔐 Veilige lokale opslag van API key (wordt alleen in je browser opgeslagen)
+- 💬 Real-time chat met een lokaal LLM op localhost:1234
+- 🔓 Geen API key nodig - werkt direct met je lokale LLM
 - ⚡ Snelle en soepele gebruikerservaring
 - 📱 Volledig responsive (werkt op desktop en mobiel)
-- 🌐 Geen backend server nodig - werkt volledig in de browser
+- 🌐 Privacy-vriendelijk - alle communicatie blijft lokaal
 
 ## Installatie
 
@@ -35,21 +35,22 @@ Navigeer vervolgens naar `http://localhost:8000` in je browser.
 
 ## Gebruik
 
-### 1. API Key verkrijgen
+### 1. Start je lokale LLM server
 
-1. Ga naar [OpenAI Platform](https://platform.openai.com/api-keys)
-2. Log in of maak een account aan
-3. Maak een nieuwe API key aan
-4. Kopieer de key (hij begint met `sk-`)
+Zorg ervoor dat je lokale LLM server draait op `http://localhost:1234` met een OpenAI-compatibele API endpoint (`/v1/chat/completions`).
+
+Voorbeelden van lokale LLM servers:
+- **LM Studio**: Start een server met je favoriete model
+- **Ollama**: Gebruik `ollama serve` (standaard poort 11434, pas eventueel de code aan)
+- **llama.cpp server**: Start met de juiste parameters
+- **LocalAI**: Configureer op poort 1234
 
 ### 2. Chat interface gebruiken
 
 1. Open `index.html` in je browser
-2. Voer je OpenAI API key in wanneer daarom gevraagd wordt
-3. Klik op "Opslaan"
-4. Begin met chatten!
+2. Begin direct met chatten!
 
-Je API key wordt veilig opgeslagen in de local storage van je browser en wordt alleen naar OpenAI gestuurd om berichten te verwerken.
+Geen API key nodig - alle communicatie vindt plaats met je lokale LLM server.
 
 ## Bestandsstructuur
 
@@ -63,31 +64,28 @@ Je API key wordt veilig opgeslagen in de local storage van je browser en wordt a
 
 ## Technische Details
 
-### OpenAI API Configuratie
+### Lokale LLM API Configuratie
 
-De chat interface gebruikt de volgende OpenAI API instellingen:
+De chat interface communiceert met je lokale LLM server op:
 
-- **Model**: `gpt-3.5-turbo`
+- **Endpoint**: `http://localhost:1234/v1/chat/completions`
 - **Temperature**: `0.7` (balans tussen creativiteit en consistentie)
 - **Max Tokens**: `1000` (maximale lengte van antwoorden)
+- **Authenticatie**: Geen API key vereist
 
-### Beveiliging
+### Privacy en Beveiliging
 
-⚠️ **Belangrijk voor productie gebruik:**
+✅ **Privacy voordelen:**
 
-- API keys worden in **plain text** opgeslagen in browser localStorage
-- Dit is acceptabel voor demo/hackathon doeleinden waarbij de key alleen client-side wordt gebruikt
-- Voor productie gebruik wordt aanbevolen:
-  - Server-side API key management te implementeren
-  - Rate limiting en usage monitoring toe te voegen
-  - HTTPS te gebruiken
-  - Environment variables te gebruiken voor gevoelige configuratie
+- Geen API keys nodig
+- Alle data blijft lokaal op je machine
+- Geen externe API calls naar cloud diensten
+- Volledige controle over je data en model
 
-**Huidig beveiligingsmodel:**
-- API keys worden alleen lokaal opgeslagen in browser local storage
-- Geen API keys worden naar andere servers gestuurd (behalve OpenAI)
-- Alle API calls gaan direct van de browser naar OpenAI
-- Keys zijn toegankelijk via browser developer tools (dit is inherent aan client-side oplossingen)
+**Technische setup:**
+- Alle API calls gaan naar localhost:1234
+- Geen authenticatie headers vereist
+- OpenAI-compatibele API formaat voor maximale compatibiliteit
 
 ### Browser Compatibiliteit
 
@@ -104,17 +102,14 @@ Vereist moderne JavaScript features zoals:
 
 ## Aanpassingen
 
-### Model wijzigen
+### Lokale LLM server poort wijzigen
 
-In `chat.js`, wijzig de `model` parameter in de API call:
+Als je lokale LLM server op een andere poort draait, pas de URL aan in `chat.js`:
 
 ```javascript
-body: JSON.stringify({
-    model: 'gpt-4',  // Wijzig naar gpt-4 of een ander model
-    messages: this.messages,
-    temperature: 0.7,
-    max_tokens: 1000
-})
+const response = await fetch('http://localhost:JOUW_POORT/v1/chat/completions', {
+    // ... rest van de configuratie
+});
 ```
 
 ### Styling aanpassen
@@ -141,23 +136,23 @@ constructor() {
 
 ## Problemen oplossen
 
-### API Key werkt niet
+### Kan geen verbinding maken met lokale LLM
 
-- Controleer of de API key correct is overgenomen (geen extra spaties)
-- Zorg dat je OpenAI account credits heeft
-- Controleer of je API key niet is verlopen of ingetrokken
+- Controleer of je lokale LLM server draait op poort 1234
+- Zorg dat de server een OpenAI-compatibele API biedt op `/v1/chat/completions`
+- Controleer firewall instellingen die localhost verkeer kunnen blokkeren
 
 ### Foutmeldingen
 
-- **401 Unauthorized**: API key is ongeldig of verlopen
-- **429 Too Many Requests**: Rate limit bereikt, wacht even en probeer opnieuw
-- **500 Server Error**: OpenAI server probleem, probeer later opnieuw
+- **Connection refused**: LLM server draait niet of draait op een andere poort
+- **CORS errors**: Sommige LLM servers hebben CORS configuratie nodig voor browser toegang
+- **500 Server Error**: Probleem met je lokale LLM server, check de server logs
 
 ### Chat laadt niet
 
-- Controleer je internetverbinding
 - Open de browser console (F12) voor error berichten
 - Zorg dat JavaScript is ingeschakeld in je browser
+- Controleer of de LLM server bereikbaar is op http://localhost:1234
 
 ## Licentie
 
@@ -165,7 +160,7 @@ Dit project is beschikbaar voor persoonlijk en educatief gebruik.
 
 ## Credits
 
-Ontwikkeld voor de AI Hackathon met OpenAI's GPT API.
+Ontwikkeld voor de AI Hackathon met ondersteuning voor lokale LLM's.
 
 ## Bijdragen
 
