@@ -1,3 +1,6 @@
+// Learning blocks configuration version (increment when structure changes)
+const BLOCKS_VERSION = 1;
+
 // Learning blocks configuration
 const LEARNING_BLOCKS = [
     {
@@ -85,14 +88,22 @@ class ChatInterface {
     
     loadLearningBlocks() {
         const saved = localStorage.getItem('learningBlocks');
-        if (saved) {
+        const savedVersion = localStorage.getItem('blocksVersion');
+        
+        // Check if saved data exists and version matches
+        if (saved && savedVersion === String(BLOCKS_VERSION)) {
             return JSON.parse(saved);
         }
-        return JSON.parse(JSON.stringify(LEARNING_BLOCKS)); // Deep copy
+        
+        // Version mismatch or no saved data - use default blocks
+        const blocks = JSON.parse(JSON.stringify(LEARNING_BLOCKS)); // Deep copy
+        this.saveLearningBlocks();
+        return blocks;
     }
     
     saveLearningBlocks() {
         localStorage.setItem('learningBlocks', JSON.stringify(this.learningBlocks));
+        localStorage.setItem('blocksVersion', String(BLOCKS_VERSION));
     }
     
     init() {
@@ -330,7 +341,6 @@ class ChatInterface {
         if (!this.currentBlock) return;
         
         const lowerMessage = message.toLowerCase();
-        let objectiveCompleted = false;
         
         // Check if the message indicates objective completion
         const completionPhrases = [
@@ -357,7 +367,6 @@ class ChatInterface {
                     
                     if (hasKeywords) {
                         obj.completed = true;
-                        objectiveCompleted = true;
                         this.showObjectiveCompletedNotification(obj);
                     }
                 }
@@ -402,9 +411,11 @@ class ChatInterface {
                     <strong>🎊 Blok Voltooid!</strong><br>
                     Je hebt ${this.currentBlock.title} afgerond! Het volgende blok is nu ontgrendeld.
                     <br><br>
-                    <button class="back-to-start-btn" onclick="chatInterface.goBackToStart()">Terug naar Overzicht</button>
+                    <button class="back-to-start-btn">Terug naar Overzicht</button>
                 </div>
             `;
+            const backBtn = notification.querySelector('.back-to-start-btn');
+            backBtn.addEventListener('click', () => this.goBackToStart());
             this.elements.messagesDiv.appendChild(notification);
             this.scrollToBottom();
         } else {
@@ -415,9 +426,11 @@ class ChatInterface {
                     <strong>🏆 Gefeliciteerd!</strong><br>
                     Je hebt alle blokken voltooid! Geweldig werk!
                     <br><br>
-                    <button class="back-to-start-btn" onclick="chatInterface.goBackToStart()">Terug naar Overzicht</button>
+                    <button class="back-to-start-btn">Terug naar Overzicht</button>
                 </div>
             `;
+            const backBtn = notification.querySelector('.back-to-start-btn');
+            backBtn.addEventListener('click', () => this.goBackToStart());
             this.elements.messagesDiv.appendChild(notification);
             this.scrollToBottom();
         }
