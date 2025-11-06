@@ -2,6 +2,8 @@ class ChatInterface {
     constructor() {
         this.messages = [];
         this.isProcessing = false;
+        this.systemPrompt = '';
+        this.initialUserPrompt = '';
         
         this.elements = {
             chatContainer: document.getElementById('chatContainer'),
@@ -14,9 +16,38 @@ class ChatInterface {
         this.init();
     }
     
-    init() {
+    async init() {
+        await this.loadPrompts();
         this.showChat();
         this.attachEventListeners();
+    }
+    
+    async loadPrompts() {
+        try {
+            // Load system prompt from text file
+            const systemResponse = await fetch('system_prompt.txt');
+            if (systemResponse.ok) {
+                this.systemPrompt = await systemResponse.text();
+                this.messages.push({
+                    role: 'system',
+                    content: this.systemPrompt.trim()
+                });
+            }
+            
+            // Load initial user prompt from text file
+            const userResponse = await fetch('user_prompt.txt');
+            if (userResponse.ok) {
+                this.initialUserPrompt = await userResponse.text();
+                // Update the initial assistant message in the DOM
+                const initialMessage = document.querySelector('.message.assistant-message .message-content');
+                if (initialMessage) {
+                    initialMessage.textContent = this.initialUserPrompt.trim();
+                }
+            }
+        } catch (error) {
+            console.error('Error loading prompts:', error);
+            // Fallback to default behavior if files can't be loaded
+        }
     }
     
     attachEventListeners() {
