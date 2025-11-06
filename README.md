@@ -148,7 +148,7 @@ LM Studio is een gebruiksvriendelijke desktop applicatie waarmee je eenvoudig gr
 
 ### CORS troubleshooting
 
-Als je CORS errors krijgt in je browser console:
+Als je CORS errors krijgt in je browser console (voorbeeld, jouw poort kan verschillen):
 
 ```
 Access to fetch at 'http://localhost:1234/v1/chat/completions' from origin 'http://localhost:8000' 
