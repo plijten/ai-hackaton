@@ -50,15 +50,15 @@ Navigeer vervolgens naar `http://localhost:8000` in je browser.
 1. Open LM Studio
 2. Klik op het **"Search"** icoon (🔍) in de linker zijbalk
 3. Zoek naar een model, bijvoorbeeld:
-   - `llama-3.2-3b-instruct` (klein, snel model ~2GB)
-   - `mistral-7b-instruct` (middelgroot model ~4GB)
-   - `llama-2-13b-chat` (groter model voor betere resultaten ~7GB)
+   - `llama-3.2-3b-instruct` (klein, snel model, gekwantiseerde versies vanaf ~2GB)
+   - `mistral-7b-instruct` (middelgroot model, gekwantiseerde versies vanaf ~4GB)
+   - `llama-2-13b-chat` (groter model voor betere resultaten, gekwantiseerde versies vanaf ~7GB)
 4. Klik op de **"Download"** knop naast het model dat je wilt gebruiken
 5. Wacht tot het model volledig is gedownload
 
 **Stap 3: Start de lokale server**
 
-1. Klik op het **"Local Server"** icoon (↔️) in de linker zijbalk van LM Studio
+1. Klik op het **"Local Server"** tabblad in de linker zijbalk van LM Studio
 2. Selecteer het gedownloade model bovenaan de pagina uit het dropdown menu
 3. Klik op de **"Start Server"** knop
 
