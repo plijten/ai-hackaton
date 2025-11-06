@@ -79,11 +79,11 @@ In het "Server Options" gedeelte aan de rechterkant van het scherm:
 3. **Serve on Local Network (optioneel):**
    - Zoek naar de checkbox **"Serve on Local Network"**
    - Als je de chat interface wilt gebruiken vanaf andere apparaten op hetzelfde netwerk, vink deze optie aan
-   - Anders kun je deze uitgelaten laten voor alleen lokale toegang
+   - Anders kun je deze uitgeschakeld laten voor alleen lokale toegang
 
 4. **Andere instellingen (optioneel):**
    - **Context Length**: Bepaalt hoeveel conversatiegeschiedenis het model onthoudt
-   - **GPU Offload**: Hoeveel GPU layers gebruikt worden (meer is sneller als je een GPU hebt)
+   - **GPU Offload**: Hoeveel GPU lagen gebruikt worden (meer is sneller als je een GPU hebt)
 
 **Stap 5: Controleer of de server draait**
 
